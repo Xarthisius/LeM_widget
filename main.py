@@ -6,12 +6,14 @@ from bokeh.plotting import figure
 from bokeh.layouts import layout, widgetbox
 from bokeh.io import curdoc
 from bokeh.models import ColumnDataSource, Range1d, LinearAxis
-from bokeh.models.widgets import Slider, Select
+from bokeh.models.widgets import (
+    Slider, Select, DataTable, TableColumn, IntEditor
+)
 
 
 def get_data(sliders, axes=[' Ci', ' Transpiration', ' ANet']):
     os.chdir(TDIR)
-    inp_pd = pd.copy()
+    inp_pd = pd #.copy()
     for s in sliders:
         inp_pd[s.title] = s.value
     inp_pd.to_csv(os.path.join(TDIR, 'current_input'), sep='\t', index=False)
@@ -59,10 +61,11 @@ def bounds_heuristic(val):
 def update():
     source.data = get_data(sliders,
                            [x_axis.value, y1_axis.value, y2_axis.value])
+    pd_source.data = pd.to_dict('list')
 
 
 TDIR = os.path.dirname(os.path.abspath(__file__))
-pd = pandas.read_table('./LeM_input.txt')
+pd = pandas.read_table(os.path.join(TDIR, "Input", 'LeM_input.txt'))
 blacklist_keys = ['LeafID', 'Year', 'DayOfYear', 'Hour']
 slider_keys = [key for key in pd.keys()
                if (pd[key] == pd[key][0]).all() and
@@ -90,6 +93,13 @@ p.add_layout(LinearAxis(y_range_name='second'), 'right')
 p.line(x='x', y='y1', source=source)
 p.line(x='x', y='y2', source=source, color='green', y_range_name='second')
 
+
+pd_source = ColumnDataSource(pd)
+columns = [TableColumn(field=key, title=key, editor=IntEditor()) for key in pd.keys()]
+#columns = [TableColumn(field=key, title=key) for key in ['LeafID', 'Temperature']]
+data_table = DataTable(source=pd_source, columns=columns, width=1200, height=300,
+                       editable=True)
+
 sizing_mode = 'fixed'  # 'scale_width' also looks nice with this example
 controls = sliders + [x_axis, y1_axis, y2_axis]
 for item in controls:
@@ -97,7 +107,9 @@ for item in controls:
 
 inputs1 = widgetbox(*controls[:10], sizing_mode=sizing_mode)
 inputs2 = widgetbox(*controls[10:], sizing_mode=sizing_mode)
-l = layout([[inputs1, inputs2, p], ], sizing_mode=sizing_mode)
+l = layout([[inputs1, inputs2, p],
+            [widgetbox(data_table, sizing_mode=sizing_mode)]],
+           sizing_mode=sizing_mode)
 
 update()  # initial load of the data
 curdoc().add_root(l)
