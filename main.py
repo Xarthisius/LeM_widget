@@ -81,8 +81,17 @@ x_axis = Select(title="X Axis", options=sorted(axis_keys), value=" Ci")
 y1_axis = Select(title="Y1 Axis", options=sorted(
     axis_keys), value=" Transpiration")
 y2_axis = Select(title="Y2 Axis", options=sorted(axis_keys), value=" ANet")
+
+key_bounds = {
+    'Temperature': dict(start=5, end=45, step=1),
+    'NIR': dict(start=0, end=1000, step=50),
+    'LW': dict(start=0, end=1000, step=50),
+}
 for key in slider_keys:
-    s = Slider(title=key, **bounds_heuristic(pd[key][0]))
+    if key in key_bounds:
+        s = Slider(title=key, value=pd[key][0], **key_bounds[key])
+    else:
+        s = Slider(title=key, **bounds_heuristic(pd[key][0]))
     sliders.append(s)
 
 source = ColumnDataSource(data=get_data(sliders))
